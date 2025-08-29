@@ -45,19 +45,19 @@ const MainMenuScreen = () => {
           icon="+"
           title="Stock In"
           description="Mencatat barang masuk"
-          onPress={() => Alert.alert('Navigasi', 'Go to Stock In')}
+          onPress={() => navigation.navigate('StockIn')}
         />
         <MenuItem
           icon="-"
           title="Stock Out"
           description="Mencatat barang keluar"
-          onPress={() => Alert.alert('Navigasi', 'Go to Stock Out')}
+          onPress={() => navigation.navigate('StockOut')}
         />
         <MenuItem
           icon="≡"
           title="Stock Opname"
           description="Pengecekan stok fisik"
-          onPress={() => Alert.alert('Navigasi', 'Go to Stock Opname')}
+          onPress={() => navigation.navigate('StockOpname')}
         />
       </View>
     </SafeAreaView>
