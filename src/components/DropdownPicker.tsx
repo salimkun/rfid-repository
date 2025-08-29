@@ -2,7 +2,20 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 
-const DropdownPicker = ({ label, selectedValue, onValueChange, items, placeholder }) => {
+interface DropdownItem {
+  label: string;
+  value: string;
+}
+
+interface DropdownPickerProps {
+  label: string;
+  selectedValue: string;
+  onValueChange: (itemValue: string, itemIndex: number) => void;
+  items: DropdownItem[];
+  placeholder?: string;
+}
+
+const DropdownPicker = ({ label, selectedValue, onValueChange, items, placeholder }: DropdownPickerProps) => {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>

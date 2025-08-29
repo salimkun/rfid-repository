@@ -1,10 +1,27 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/native-stack';
 // import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const CustomHeader = ({ title, subtitle, showBackButton = true }) => {
-  const navigation = useNavigation();
+type RootStackParamList = {
+  Login: undefined;
+  MainMenu: undefined;
+  StockIn: undefined;
+  StockOut: undefined;
+  StockOpname: undefined;
+};
+
+type CustomHeaderNavigationProp = StackNavigationProp<RootStackParamList>;
+
+interface CustomHeaderProps {
+  title: string;
+  subtitle?: string;
+  showBackButton?: boolean;
+}
+
+const CustomHeader = ({ title, subtitle, showBackButton = true }: CustomHeaderProps) => {
+  const navigation = useNavigation<CustomHeaderNavigationProp>();
 
   return (
     <SafeAreaView style={styles.safeArea}>

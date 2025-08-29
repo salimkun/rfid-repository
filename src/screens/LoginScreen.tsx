@@ -1,8 +1,23 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { StackNavigationProp } from '@react-navigation/native-stack';
 import useLogin from '../hooks/useLogin';
 
-const LoginScreen = ({ navigation }) => {
+type RootStackParamList = {
+  Login: undefined;
+  MainMenu: undefined;
+  StockIn: undefined;
+  StockOut: undefined;
+  StockOpname: undefined;
+};
+
+type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
+
+interface LoginScreenProps {
+  navigation: LoginScreenNavigationProp;
+}
+
+const LoginScreen = ({ navigation }: LoginScreenProps) => {
   const { username, setUsername, password, setPassword, handleLogin } = useLogin(navigation);
 
   return (

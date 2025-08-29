@@ -1,23 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Text, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Alert } from 'react-native'; // Removed ScrollView
+import { StackNavigationProp } from '@react-navigation/native-stack';
 import CustomHeader from '../components/CustomHeader';
 import DropdownPicker from '../components/DropdownPicker';
 import ScanSection from '../components/ScanSection';
 import useRfidMqtt, { RfidDataWithQty } from '../hooks/useRfidMqtt';
 
-const StockOutScreen = () => {
-  const [selectedLocation, setSelectedLocation] = useState('');
+type RootStackParamList = {
+  Login: undefined;
+  MainMenu: undefined;
+  StockIn: undefined;
+  StockOut: undefined;
+  StockOpname: undefined;
+};
 
-  const { 
-    isScanning, 
-    scannedTagsWithQty, 
-    toggleScan, 
-    clearScannedTags, 
-    saveLocalTagsArray, 
-    publishRfidDataArray, 
+type StockOutScreenNavigationProp = StackNavigationProp<RootStackParamList, 'StockOut'>;
+
+interface StockOutScreenProps {
+  navigation: StockOutScreenNavigationProp;
+}
+
+const StockOutScreen = ({ navigation }: StockOutScreenProps) => {
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const selectedProduct = "Default Product for Stock Out"; // Stock Out doesn't have a product dropdown
+
+  const {
+    isScanning,
+    scannedTagsWithQty,
+    toggleScan,
+    clearScannedTags,
+    saveLocalTagsArray,
+    publishRfidDataArray,
     loadLocalTags,
     setOperationType,
-    setScannedTagsWithQty // Expose this if you need to manually set tags from screen
+    // setScannedTagsWithQty // Expose this if you need to manually set tags from screen
   } = useRfidMqtt();
 
   useEffect(() => {
@@ -49,9 +65,13 @@ const StockOutScreen = () => {
       Alert.alert('Selesaikan Transaksi', 'Tidak ada data RFID untuk diselesaikan.');
       return;
     }
+    if (!selectedLocation) {
+      Alert.alert('Pilih Lokasi', 'Mohon pilih lokasi terlebih dahulu.');
+      return;
+    }
     await saveLocalTagsArray(scannedTagsWithQty);
-    publishRfidDataArray(scannedTagsWithQty);
-    Alert.alert('Transaksi Selesai', `Transaksi ${scannedTagsWithQty.length} RFID berhasil diselesaikan dan dipublikasikan!`);
+    publishRfidDataArray(scannedTagsWithQty, selectedLocation, selectedProduct);
+    Alert.alert('Transaksi Selesai', `Transaksi ${scannedTagsWithQty.length} RFID berhasil diselesaikan dan dipublikasikan dari ${selectedLocation}!`);
     clearScannedTags(); // Clear tags after completing transaction
   };
 
@@ -60,14 +80,16 @@ const StockOutScreen = () => {
   return (
     <View style={styles.container}>
       <CustomHeader title="Stock Out" subtitle="Pencatatan Barang Keluar" />
-      <ScrollView style={styles.contentContainer}>
-        <DropdownPicker
-          label="Pilih Lokasi"
-          placeholder="Pilih nama lokasi..."
-          selectedValue={selectedLocation}
-          onValueChange={(itemValue) => setSelectedLocation(itemValue)}
-          items={locationItems}
-        />
+      <View style={styles.contentWrapper}>
+        <View style={styles.dropdownsContainer}>
+          <DropdownPicker
+            label="Pilih Lokasi"
+            placeholder="Pilih nama lokasi..."
+            selectedValue={selectedLocation}
+            onValueChange={(itemValue: string) => setSelectedLocation(itemValue)}
+            items={locationItems}
+          />
+        </View>
         <ScanSection
           title="Total Kuantitas"
           totalQuantity={totalItemsCount}
@@ -78,7 +100,7 @@ const StockOutScreen = () => {
           showTotalItem={true}
           totalItemCount={scannedTagsWithQty.length}
         />
-      </ScrollView>
+      </View>
       <TouchableOpacity style={styles.bottomButton} onPress={handleCompleteTransaction}>
         <Text style={styles.bottomButtonText}>Selesaikan Transaksi</Text>
       </TouchableOpacity>
@@ -91,9 +113,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f8f8',
   },
-  contentContainer: {
+  contentWrapper: {
     flex: 1,
     padding: 20,
+    paddingBottom: 0,
+  },
+  dropdownsContainer: {
+    marginBottom: 20,
   },
   scanItem: {
     flexDirection: 'row',
@@ -123,10 +149,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    paddingBottom: 30,
   },
   bottomButtonText: {
     color: '#fff',

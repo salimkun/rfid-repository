@@ -1,18 +1,36 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/native-stack';
 // Import icons from a library like react-native-vector-icons
 // For now, we'll just use placeholders for the icons.
 // import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
+type RootStackParamList = {
+  Login: undefined;
+  MainMenu: undefined;
+  StockIn: undefined;
+  StockOut: undefined;
+  StockOpname: undefined;
+};
+
+type MainMenuScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainMenu'>;
+
+interface MenuItemProps {
+  icon: string;
+  title: string;
+  description: string;
+  onPress: () => void;
+}
+
 const MainMenuScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<MainMenuScreenNavigationProp>();
 
   const handleLogout = () => {
     navigation.replace('Login');
   };
 
-  const MenuItem = ({ icon, title, description, onPress }) => (
+  const MenuItem = ({ icon, title, description, onPress }: MenuItemProps) => (
     <TouchableOpacity style={styles.menuItem} onPress={onPress}>
       <View style={styles.menuItemIconContainer}>
         {/* <Icon name={icon} size={24} color="#fff" /> */}

@@ -1,23 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Text, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Alert } from 'react-native'; // Removed ScrollView
+import { StackNavigationProp } from '@react-navigation/native-stack';
 import CustomHeader from '../components/CustomHeader';
 import DropdownPicker from '../components/DropdownPicker';
 import ScanSection from '../components/ScanSection';
 import useRfidMqtt, { RfidDataWithQty } from '../hooks/useRfidMqtt';
 
-const StockOpnameScreen = () => {
-  const [selectedLocation, setSelectedLocation] = useState('');
+type RootStackParamList = {
+  Login: undefined;
+  MainMenu: undefined;
+  StockIn: undefined;
+  StockOut: undefined;
+  StockOpname: undefined;
+};
 
-  const { 
-    isScanning, 
-    scannedTagsWithQty, 
-    toggleScan, 
-    clearScannedTags, 
-    saveLocalTagsArray, 
-    publishRfidDataArray, 
+type StockOpnameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'StockOpname'>;
+
+interface StockOpnameScreenProps {
+  navigation: StockOpnameScreenNavigationProp;
+}
+
+const StockOpnameScreen = ({ navigation }: StockOpnameScreenProps) => {
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const selectedProduct = "Default Product for Stock Opname"; // Stock Opname might not have a product dropdown
+
+  const {
+    isScanning,
+    scannedTagsWithQty,
+    toggleScan,
+    clearScannedTags,
+    saveLocalTagsArray,
+    publishRfidDataArray,
     loadLocalTags,
     setOperationType,
-    setScannedTagsWithQty // Expose this if you need to manually set tags from screen
+    // setScannedTagsWithQty // Expose this if you need to manually set tags from screen
   } = useRfidMqtt();
 
   useEffect(() => {
@@ -38,7 +54,8 @@ const StockOpnameScreen = () => {
     <View style={styles.scanItem}>
       <View>
         <Text style={styles.scanItemRfid}>{item.id}</Text>
-        <Text style={styles.scanItemProductName}>{item.productName || 'N/A'}</Text>
+        {/* In the image, Stock Opname shows Product Name and ID: */}
+        {/* <Text style={styles.scanItemProductName}>{item.productName || 'N/A'}</Text> */}
       </View>
       <Text style={styles.scanItemId}>ID: {item.id}</Text>
     </View>
@@ -49,23 +66,29 @@ const StockOpnameScreen = () => {
       Alert.alert('Simpan Hasil Opname', 'Tidak ada data RFID untuk disimpan.');
       return;
     }
+    if (!selectedLocation) {
+      Alert.alert('Pilih Lokasi', 'Mohon pilih lokasi terlebih dahulu.');
+      return;
+    }
     await saveLocalTagsArray(scannedTagsWithQty);
-    publishRfidDataArray(scannedTagsWithQty);
-    Alert.alert('Simpan Hasil Opname', `Hasil opname ${scannedTagsWithQty.length} RFID berhasil disimpan dan dipublikasikan!`);
+    publishRfidDataArray(scannedTagsWithQty, selectedLocation, selectedProduct);
+    Alert.alert('Simpan Hasil Opname', `Hasil opname ${scannedTagsWithQty.length} RFID berhasil disimpan dan dipublikasikan dari ${selectedLocation}!`);
     clearScannedTags(); // Clear tags after saving and publishing
   };
 
   return (
     <View style={styles.container}>
       <CustomHeader title="Stock Opname" subtitle="Pengecekan Stok Fisik" />
-      <ScrollView style={styles.contentContainer}>
-        <DropdownPicker
-          label="Pilih Lokasi"
-          placeholder="Pilih nama lokasi..."
-          selectedValue={selectedLocation}
-          onValueChange={(itemValue) => setSelectedLocation(itemValue)}
-          items={locationItems}
-        />
+      <View style={styles.contentWrapper}>
+        <View style={styles.dropdownsContainer}>
+          <DropdownPicker
+            label="Pilih Lokasi"
+            placeholder="Pilih nama lokasi..."
+            selectedValue={selectedLocation}
+            onValueChange={(itemValue: string) => setSelectedLocation(itemValue)}
+            items={locationItems}
+          />
+        </View>
         <ScanSection
           title="Total RFID Terbaca"
           totalQuantity={scannedTagsWithQty.length}
@@ -76,7 +99,7 @@ const StockOpnameScreen = () => {
           showTotalItem={true}
           totalItemCount={scannedTagsWithQty.length}
         />
-      </ScrollView>
+      </View>
       <TouchableOpacity style={styles.bottomButton} onPress={handleSaveOpname}>
         <Text style={styles.bottomButtonText}>Simpan Hasil Opname</Text>
       </TouchableOpacity>
@@ -89,9 +112,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f8f8',
   },
-  contentContainer: {
+  contentWrapper: {
     flex: 1,
     padding: 20,
+    paddingBottom: 0, // Ensure no extra padding at the bottom
+  },
+  dropdownsContainer: {
+    marginBottom: 20,
   },
   scanItem: {
     flexDirection: 'row',
@@ -121,10 +148,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    paddingBottom: 30, // Add padding for iPhone X style safe area
   },
   bottomButtonText: {
     color: '#fff',

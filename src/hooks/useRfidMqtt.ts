@@ -3,11 +3,12 @@ import mqtt from 'mqtt';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, EmitterSubscription, NativeEventEmitter, NativeModules } from 'react-native';
 import {
-  initializeReader,
-  deInitializeReader,
-  startReadingTags,
-  stopReadingTags,
+  // initializeReader,
+  // deInitializeReader,
+  // startReadingTags,
+  // stopReadingTags,
   tagListener,
+  // RfidReader
 } from 'react-native-rfid-chainway-c72'; // Import library RFID Chainway C72 yang sesungguhnya
 
 export interface RfidData {
@@ -21,7 +22,7 @@ export interface RfidDataWithQty extends RfidData {
 }
 
 const MQTT_BROKER_URI = 'ws://146.190.93.211:8080/mqtt'; // Public test broker
-const MQTT_TOPIC = 'rfid/nfc'; // Updated topic as per new request
+const MQTT_TOPIC = 'rfid/onHands'; // Updated topic as per new request
 const USERNAME = "ArlitaDev";
 const PASSWORD = "4Rlit40!"
 const LOCAL_STORAGE_KEY = 'rfidTags';
@@ -91,7 +92,7 @@ const useRfidMqtt = () => {
       try {
         console.log('RFID: Initializing reader...');
         // As previously determined, initializeReader() may require (as any) and takes no arguments
-        await (initializeReader as any)(); 
+        await (NativeModules.RfidChainwayC72.initializeReader as any)(); 
         console.log('RFID: Reader initialized successfully.');
         
         // Inisialisasi NativeEventEmitter dengan modul native yang sebenarnya
@@ -134,7 +135,7 @@ const useRfidMqtt = () => {
       }
       try {
         // As previously determined, deInitializeReader() may require (as any) and takes no arguments
-        (deInitializeReader as any)(); 
+        (NativeModules.RfidChainwayC72.deInitializeReader as any)(); 
         console.log('RFID: Reader deinitialized successfully.');
       } catch (e: unknown) {
         console.error('RFID: Error during deinitialization:', e);
@@ -155,7 +156,7 @@ const useRfidMqtt = () => {
       
       // Wrap startReadingTags in a Promise to better handle its async nature with callbacks
       const startResult = await new Promise<[boolean, string]>((resolve) => {
-        (startReadingTags as any)((result: boolean, msg: string) => {
+        (NativeModules.RfidChainwayC72.startReadingTags as any)((result: boolean, msg: string) => {
           resolve([result, msg]);
         });
       });
@@ -191,7 +192,8 @@ const useRfidMqtt = () => {
 
       // Wrap stopReadingTags in a Promise to better handle its async nature with callbacks
       const stopResult = await new Promise<[boolean, string]>((resolve) => {
-        (stopReadingTags as any)((result: boolean, msg: string) => {
+        (NativeModules.RfidChainwayC72.stopReadingTags as any)((result: boolean, msg: string) => {
+          Alert.alert('message alert ', msg)
           resolve([result, msg]);
         });
       });
@@ -202,8 +204,17 @@ const useRfidMqtt = () => {
         console.log(`RFID: stopReadingTags successful.`, msg || 'No message provided by reader.');
         Alert.alert('RFID Scan', 'Pemindaian RFID dihentikan.');
       } else {
-        console.error('RFID: stopReadingTags failed - Result:', result, 'Msg:', msg || 'Native module returned undefined message'); // Add more descriptive message
-        Alert.alert('RFID Error', `Gagal menghentikan pemindaian RFID: ${msg || `Pembaca melaporkan kesalahan yang tidak diketahui. Hasil: ${result}`}`);
+        console.error('RFID: stopReadingTags failed - Result:', result, 'Msg:', msg || 'Native module returned undefined message');
+        let userMessage = 'Gagal menghentikan pemindaian RFID.';
+        if (!result) { // Check if the operation failed (result is false)
+          userMessage = `Pembaca melaporkan kesalahan. Hasil: ${result}`;
+          if (msg) {
+            userMessage += ` Pesan: ${msg}`;
+          } else { // if msg is undefined, assume it's the '22' error as previously observed
+            userMessage += "\nIni mungkin menunjukkan masalah dengan perangkat keras RFID (Kode 22). Mohon coba lagi, atau mulai ulang aplikasi jika masalah berlanjut.";
+          }
+        }
+        Alert.alert('RFID Error', userMessage);
         // Even if stop fails, we might want to reset isScanning if the actual reader is no longer scanning
         // This depends on the exact behavior of the native module. For now, assume it's still scanning if it failed to stop.
       }
@@ -252,9 +263,16 @@ const useRfidMqtt = () => {
     }
   };
 
-  const publishRfidDataArray = (tags: RfidDataWithQty[], location: string, product: string) => {
+  const publishRfidDataArray = (tags: RfidDataWithQty[], location: string, product_id: number | null) => {
     if (mqttClient && isConnected) {
-      const dataToPublish = JSON.stringify({ tags, location, product, source: 'react-native-app' });
+      const lot_id = tags.map(tag => tag.id);
+      const payload = {
+        location_id: 8, // Default value as API is not ready yet
+        product_id: product_id,
+        lot_id: lot_id,
+        owner_id: 1, // Default value
+      };
+      const dataToPublish = JSON.stringify(payload);
       console.log('MQTT: Attempting to publish tags array:', dataToPublish);
       mqttClient.publish(MQTT_TOPIC, dataToPublish, {}, (err?: Error) => { 
         if (err) {
